@@ -211,10 +211,22 @@ def main():
 
 def saque(clientes):
     cpf = input("Informe o CPF do cliente: ")
-    cliente = filtrar_usuario(cpf, clientes)     
+    cliente = filtrar_usuario(cpf, clientes)
     
-       
-
+    if not cliente:
+        print("\n Cliente não encontrado!")
+        return
+    
+    valor = float(input("Informe o valor do saque: "))
+    transacao = Saque(valor)
+    
+    conta = recuperar_conta_cliente(cliente)
+    
+    if not conta:
+        return
+    
+    cliente.realizar_transacao(conta, transacao)     
+    
 def deposito(clientes):
     cpf = input("Informe o CPF do cliente: ")
     cliente = filtrar_usuario(cpf, clientes)
@@ -232,11 +244,31 @@ def deposito(clientes):
     
     cliente.realizar_transacao(conta, transacao)
 
-def extrato(saldo, /, *, extrato):
-        print(f"\n{' Extrato '.center(25, '-')}")
-        print("Não foram realizadas movimentações." if not extrato else extrato)
-        print(f"\nSaldo: R$ {saldo:.2f}")
-        print(f"\n{''.center(25, '-')}")
+def extrato(clientes):
+    cpf = input("Informe o CPF do cliente: ")
+    cliente = filtrar_usuario(cpf, clientes)
+    
+    if not cliente:
+        print("\n Cliente não encontrado!")
+        return
+    
+    conta = recuperar_conta_cliente(cliente)
+    if not conta:
+        return
+    
+    print(f"\n{' Extrato '.center(25, '-')}")
+    transacoes = conta.historico.transacoes
+    
+    extrato = ""
+    if not transacoes:
+        extrato = "Não foram realizadas movimentações."
+    else:
+        for transacao in transacoes:
+            extrato += f"\n {transacao['tipo']}: \n R${transacao['valor']:.2f}"
+    
+    print(extrato)
+    print(f"\nSaldo: R$ {conta.saldo:.2f}")
+    print(f"\n{''.center(25, '-')}")
 
 def filtrar_usuario(cpf, usuarios):
     usuario_filtrado = [usuario for usuario in usuarios if usuario.cpf == cpf]
@@ -254,35 +286,35 @@ def criar_usuario(usuarios):
     data_nascimento = input("Informe a data de nascimento (dd-mm-aaaa): ")
     endereco = input(f"Informe o endereço (logradouro, numero - bairro - cidade/sigla estado): ")
 
-    usuarios.append({ "nome": nome, "data_nascimento": data_nascimento, 
-                     "cpf": cpf, "endereco": endereco })
-    
-    print("Usuário registrado!".center("-", 20))
+    usuario = PessoaFisica(nome=nome, data_nascimento=data_nascimento, cpf=cpf, endereco=endereco)
 
-def criar_conta(agencia, numero_conta, usuarios):
+    usuarios.append(usuario)
+    
+    print("Usuário registrado!".center(20, "-"))
+
+def criar_conta(numero_conta, clientes, contas):
     cpf = input("Informe o CPF do usuario: ")
-    usuario = filtrar_usuario(cpf, usuarios)
+    usuario = filtrar_usuario(cpf, clientes)
 
-    if usuario:
-        print("\nConta criada com sucesso!")
-        return { "agencia": agencia, "numero_conta": numero_conta, "usuario": usuario }
+    if not usuario:
+        print("\n Cliente não encontrado!")
+        return 
     
-    print("Usuário não encontrado!")
-
+    conta = ContaCorrente.nova_conta(cliente=usuario, numero=numero_conta)
+    contas.append(conta)
+    usuario.contas.append(conta)
+    
+    print("\n Conta criada com sucesso")
+    
 def listar_contas(contas):
     for conta in contas:
-        info = f"""
-            Agência: { conta["agencia"] }
-            Conta: { conta["numero_conta"] }
-            Titular: { conta["usuario"]["nome"] }
-            """
-            
-    print(" Lista de Contas ".center("-", 20))
-    print(info)
-    print("".center("-", 20))
+        print("=" * 100)
+        print(str(conta))
     
 def recuperar_conta_cliente(cliente):
     if not cliente.contas:
         print("\n Cliente não possui conta!")
         return
     return cliente.contas[0]
+
+main()
